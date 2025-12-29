@@ -1,0 +1,21 @@
+{
+  "name": "DONY BURGUER'S - SISTEMA OFICIAL",
+  "short_name": "DonyBurguer",
+  "description": "Sistema de Atendimento Profissional do Dony Burguer's",
+  "start_url": "/index.html",
+  "display": "standalone",
+  "background_color": "#050b1a",
+  "theme_color": "#f59e0b",
+  "icons": [
+    {
+      "src": "https://i.postimg.cc/k47Mst9z/1000413132.jpg",
+      "sizes": "192x192",
+      "type": "image/jpg"
+    },
+    {
+      "src": "https://i.postimg.cc/k47Mst9z/1000413132.jpg",
+      "sizes": "512x512",
+      "type": "image/jpg"
+    }
+  ]
+}

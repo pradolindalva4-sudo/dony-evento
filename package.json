@@ -1,0 +1,19 @@
+{
+  "name": "donyburguer-sistema",
+  "version": "1.0.0",
+  "description": "Sistema de gerenciamento de pedidos e pagamentos desenvolvido para o **Dony Burguer's**.",
+  "main": "service-worker.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "dotenv": "^17.2.3",
+    "express": "^5.2.1",
+    "path": "^0.12.7",
+    "qrcode": "^1.5.4"
+  }
+}

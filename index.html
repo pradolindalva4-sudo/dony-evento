@@ -1,0 +1,257 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DONY BURGUER'S - SISTEMA OFICIAL</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        :root { --gold: #f59e0b; --dark: #050b1a; --card: #111827; --green: #10b981; --red: #ef4444; }
+        body { font-family: sans-serif; background: var(--dark); color: white; margin: 0; padding: 10px; }
+        .botao-secreto { position: absolute; top: 0; left: 0; width: 80px; height: 80px; background: transparent; z-index: 1000; }
+        .visor-total { background: #000; border: 2px solid var(--gold); border-radius: 12px; padding: 15px; text-align: center; margin-bottom: 15px; }
+        .visor-total strong { font-size: 34px; color: white; }
+        .btn-lanche { background: white; color: #000; border: none; padding: 18px; border-radius: 8px; font-weight: bold; width: 75%; text-align: left; margin-bottom: 10px; }
+        .btn-cancelar { background: var(--red); color: white; border: none; width: 20%; padding: 18px; border-radius: 8px; font-weight: bold; float: right; }
+        #painel-admin { display: none; background: #1f2937; border: 2px solid var(--gold); padding: 15px; border-radius: 12px; margin-bottom: 15px; }
+        #tela-pagamento { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 2000; text-align: center; padding-top: 40px; }
+        .caixa-pagamento { background: #fff; color: #000; width: 85%; max-width: 320px; margin: 0 auto; padding: 20px; border-radius: 20px; border: 5px solid var(--gold); }
+        @media print {
+            body * { visibility: hidden; }
+            #comprovante-imprimir, #comprovante-imprimir * { visibility: visible; }
+            #comprovante-imprimir { position: absolute; left: 0; top: 0; display: block !important; width: 100%; padding: 10px; color: black; background: white; border: 6px solid #d4af37; border-radius: 15px; }
+            .logo-print { width: 110px; border-radius: 50%; margin-bottom: 5px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="botao-secreto" onclick="abrirEscritorio()"></div>
+    <div class="no-print">
+        <div id="painel-admin">
+            <h3 style="color:var(--gold); text-align:center;">ESCRITÓRIO DONY</h3>
+            <button onclick="verRelatorio()" style="background:var(--green); color:white; width:100%; padding:12px; border:none; border-radius:8px; margin-bottom:10px;">📊 RELATÓRIO</button>
+            <input type="text" id="novoNome" style="width:90%; padding:10px; margin-bottom:5px;" placeholder="Nome do Lanche">
+            <input type="number" id="novoPreco" style="width:90%; padding:10px; margin-bottom:5px;" placeholder="Preço">
+            <button onclick="adicionarLanche()" style="background:var(--gold); width:100%; padding:12px; border:none; border-radius:8px; font-weight:bold;">SALVAR NOVO ITEM</button>
+            <button onclick="document.getElementById('painel-admin').style.display='none'" style="background:gray; color:white; width:100%; padding:8px; border:none; border-radius:8px; margin-top:10px;">FECHAR</button>
+        </div>
+        <div class="visor-total"><small style="color:var(--gold)">VALOR TOTAL DO PEDIDO</small><br><strong id="totalDisplay">R$ 0,00</strong></div>
+        <div id="resumo" style="background:var(--card); padding:12px; border-radius:8px; margin-bottom:15px; border-left:4px solid var(--gold); font-size:14px;">🛒 Itens do pedido...</div>
+        <div id="listaBotoes"></div>
+        <button onclick="finalizarPedido()" style="background:var(--green); color:white; width:100%; padding:22px; border:none; border-radius:12px; font-weight:bold; font-size:18px; margin-top:10px;">CONCLUIR PEDIDO</button>
+    </div>
+    <div id="tela-pagamento">
+        <div class="caixa-pagamento">
+            <h3 style="margin:0; color:#333;">PAGAMENTO PIX</h3>
+            <div id="qrcode-tela" style="display: flex; justify-content: center; margin: 15px 0;"></div>
+            <p id="valorTela" style="font-weight:bold; font-size:22px; color:#d4af37; margin:5px 0;"></p>
+            <button onclick="imprimirEFechar()" style="background:var(--green); color:white; width:100%; padding:18px; border:none; border-radius:10px; font-weight:bold; font-size:16px;">IMPRIMIR RECIBO AGORA</button>
+            <button onclick="document.getElementById('tela-pagamento').style.display='none'" style="background:#eee; color:#333; width:100%; padding:10px; border:none; border-radius:10px; margin-top:10px;">VOLTAR</button>
+        </div>
+    </div>
+    <div id="comprovante-imprimir" style="display:none; font-family: sans-serif; text-align: center;">
+        <img src="https://i.postimg.cc/k47Mst9z/1000413132.jpg" class="logo-print">
+        <h2 style="margin:2px 0;">DONY BURGUER'S</h2>
+        <small style="color:#d4af37; font-weight:bold;">QUALIDADE PREMIUM</small>
+        <table style="width:100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; text-align: left;">
+            <thead><tr style="border-bottom: 2px solid #eee;"><th>ITEM</th><th style="text-align:right;">PREÇO</th></tr></thead>
+            <tbody id="tabelaItens"></tbody>
+        </table>
+        <div style="margin-top:10px; border-top: 2px solid #d4af37; padding-top: 8px; text-align: right;">
+            <strong style="font-size:16px;">TOTAL: <span id="totalImpressao"></span></strong><br>
+            <small>FORMA DE PAGAMENTO: PIX</small>
+        </div>
+        <div style="margin-top:15px;">
+            <div id="qrcode-pix-imprimir" style="display:inline-block; border:1px solid #eee; padding:5px;"></div>
+            <p style="font-size:9px; margin-top:5px;">RECEBEDOR: Jose Divino Prado Da Lapa<br>CHAVE: pradolindalva4@gmail.com</p>
+        </div>
+    </div>
+    <script>
+        const _S = "drkling2025";
+        const CHAVE_PIX = "pradolindalva4@gmail.com";
+        const PRODUTOS_INICIAIS = [{n:"Kikão",p:6.00}, {n:"X salada",p:10.00}, {n:"Pastel",p:3.00}, {n:"Salada de frutas",p:5.00}, {n:"Refri 250ml",p:2.00}, {n:"Refri 1L",p:5.00}];
+        let extras = JSON.parse(localStorage.getItem('dony_ex')) || [];
+        let vendas = JSON.parse(localStorage.getItem('dony_v')) || [];
+        let pedido = [];
+
+        function abrirEscritorio() { if(prompt("SENHA DO ESCRITÓRIO:") === _S) document.getElementById('painel-admin').style.display='block'; }
+
+        function renderizar() {
+            const lista = [...PRODUTOS_INICIAIS, ...extras];
+            document.getElementById('listaBotoes').innerHTML = lista.map(i => `
+                <div style="margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;">
+                    <button class="btn-lanche" onclick="add('${i.n || i.nome}', ${i.p || i.preco})">${i.n || i.nome} - R$ ${(i.p || i.preco).toFixed(2).replace('.',',')}</button>
+                    <button class="btn-cancelar" onclick="remover('${i.n || i.nome}')">X</button>
+                </div>
+            `).join('');
+        }
+
+        function add(n, p) { pedido.push({n, p}); atualizar(); }
+
+        function remover(n) { if(prompt("SENHA ADM PARA CANCELAR:") === _S) { const idx = pedido.findIndex(item => item.n === n); if(idx > -1) { pedido.splice(idx, 1); atualizar(); } } }
+
+        function atualizar() {
+            let t = pedido.reduce((acc, i) => acc + i.p, 0);
+            document.getElementById('totalDisplay').innerText = "R$ " + t.toFixed(2).replace('.',',');
+            document.getElementById('resumo').innerText = pedido.length ? pedido.map(i => i.n).join(' | ') : "🛒 Seu carrinho está vazio";
+        }
+
+        function finalizarPedido() {
+            if(!pedido.length) return;
+            const t = pedido.reduce((acc, i) => acc + i.p, 0).toFixed(2);
+            const nome = "JOSE DIVINO P LAPA";
+            
+            // CORREÇÃO CRÍTICA DO PIX: O valor precisa ter o tamanho exato no payload
+            const valStr = t.toString();
+            const valLen = valStr.length.toString().padStart(2, '0');
+            
+            const payload = "00020101021126420014BR.GOV.BCB.PIX0123" + CHAVE_PIX + "520400005303986" + "54" + valLen + valStr + "5802BR5917" + nome + "6006MANAUS62070503***6304";
+
+            document.getElementById('valorTela').innerText = "R$ " + t.replace('.',',');
+            document.getElementById('totalImpressao').innerText = "R$ " + t.replace('.',',');
+            document.getElementById('tabelaItens').innerHTML = pedido.map(i => `<tr><td style="padding:5px 0; border-bottom:1px solid #eee;">${i.n}</td><td style="text-align:right;">R$ ${i.p.toFixed(2).replace('.',',')}</td></tr>`).join('');
+            
+            document.getElementById("qrcode-tela").innerHTML = "";
+            document.getElementById("qrcode-pix-imprimir").innerHTML = "";
+            new QRCode(document.getElementById("qrcode-tela"), { text: payload, width: 200, height: 200 });
+            new QRCode(document.getElementById("qrcode-pix-imprimir"), { text: payload, width: 90, height: 90 });
+            
+            document.getElementById('tela-pagamento').style.display = 'block';
+        }
+
+        function imprimirEFechar() {
+            vendas.push(...pedido);
+            localStorage.setItem('dony_v', JSON.stringify(vendas));
+            window.print();
+            document.getElementById('tela-pagamento').style.display = 'none';
+            pedido = []; atualizar();
+        }
+
+        function adicionarLanche() {
+            const n = document.getElementById('novoNome').value;
+            const p = parseFloat(document.getElementById('novoPreco').value);
+            if(n && p) { extras.push({nome:n, preco:p}); localStorage.setItem('dony_ex', JSON.stringify(extras)); renderizar(); }
+        }
+
+        function verRelatorio() { alert("TOTAL DE VENDAS HOJE: R$ " + vendas.reduce((acc, i) => acc + (i.p || i.preco), 0).toFixed(2).replace('.',',')); }
+        
+        renderizar();
+    </script> <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dony Burguer's - Pagamento</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; padding: 20px; background-color: #f8f9fa; }
+        .container { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); max-width: 400px; margin: auto; }
+        .btn { background-color: #28a745; color: white; border: none; padding: 15px 30px; font-size: 18px; border-radius: 10px; cursor: pointer; width: 100%; margin-top: 20px; }
+        #qr-area { margin-top: 20px; display: none; }
+        img { border: 5px solid #fff; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        .dados-banco { font-size: 12px; color: #666; margin-top: 15px; border-top: 1px solid #eee; padding-top: 10px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🍔 Dony Burguer's</h1>
+        <p>Valor do Pedido: <strong>R$ 6,00</strong></p>
+        <button class="btn" onclick="gerarPix()">Gerar QR Code PIX</button>
+
+        <div id="qr-area">
+            <h3>Escaneie para Pagar</h3>
+            <div id="canvas"></div>
+            <p><strong>JOSE DIVINO P LAPA</strong></p>
+            <div class="dados-banco">
+                Nubank | Ag: 0001 | Conta: 55501052-3
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function gerarPix() {
+            try {
+                const response = await fetch('/gerar-pix?valor=6.00');
+                const data = await response.json();
+                if (data.qrcode) {
+                    document.getElementById('qr-area').style.display = 'block';
+                    document.getElementById('canvas').innerHTML = '<img src="' + data.qrcode + '" width="250">';
+                }
+            } catch (err) {
+                alert('Erro ao conectar com o motor!');
+            }
+        // Importa a biblioteca Workbox do CDN
+importScripts('https://storage.googleapis.com/workbox-cdn/releases/7.0.0/workbox-sw.js');
+
+// Verifica se o Workbox foi carregado com sucesso
+if (workbox) {
+  console.log(`🎉 Sucesso! Workbox carregado para Service Worker.`);
+
+  // --- 1. Roteamento e Estratégias de Caching ---
+  
+  // 1.1 Cache de Assets Estáticos (CSS, JS, Imagens, Fontes)
+  // Estratégia: Cache First (Cachear primeiro)
+  // Serve instantaneamente o arquivo do cache, pois esses arquivos raramente mudam.
+  workbox.routing.registerRoute(
+    // Expressão regular para capturar URLs que terminam em extensões comuns
+    /\.(?:js|css|png|gif|jpg|jpeg|svg|woff|woff2|ttf|eot)$/,
+    new workbox.strategies.CacheFirst({
+      cacheName: 'static-assets-cache',
+      plugins: [
+        // Mantém apenas 60 entradas no cache e as exclui após 30 dias
+        new workbox.expiration.ExpirationPlugin({
+          maxEntries: 60,
+          maxAgeSeconds: 30 * 24 * 60 * 60, 
+        }),
+      ],
+    })
+  );
+
+  // 1.2 Cache para Chamadas de API (Dados JSON)
+  // Estratégia: Stale While Revalidate (Obsoleto Enquanto Revalida)
+  // Serve os dados do cache imediatamente (para velocidade) e, em segundo plano, busca a versão mais recente na rede.
+  workbox.routing.registerRoute(
+    // Rota para qualquer URL que contenha 'api/' (assumindo que suas APIs sigam esse padrão)
+    /.*\/api\/.*/,
+    new workbox.strategies.StaleWhileRevalidate({
+      cacheName: 'api-data-cache',
+      plugins: [
+        // Garante que o cache só armazene respostas com Status 200 (Sucesso)
+        new workbox.cacheableResponse.CacheableResponsePlugin({
+          statuses: [200],
+        }),
+        new workbox.expiration.ExpirationPlugin({
+          maxEntries: 50,
+          maxAgeSeconds: 24 * 60 * 60, // 24 horas
+        }),
+      ],
+    })
+  );
+
+  // 1.3 Cache para Páginas HTML
+  // Estratégia: Network First (Rede Primeiro)
+  // Tenta a rede para garantir o HTML mais atualizado, mas usa o cache como fallback em caso de falha (offline).
+  workbox.routing.registerRoute(
+    // Rota para a raiz (página principal)
+    new RegExp('^' + self.location.origin + '/$'),
+    new workbox.strategies.NetworkFirst({
+      cacheName: 'html-cache',
+      plugins: [
+        new workbox.cacheableResponse.CacheableResponsePlugin({
+          statuses: [200],
+        }),
+      ],
+    })
+  );
+
+  // --- 2. Limpeza de Cache Antigo ---
+  
+  // Isso garante que versões antigas do Service Worker não deixem lixo de cache.
+  workbox.core.clientsClaim();
+  workbox.core.skipWaiting();
+  workbox.precaching.cleanupOutdatedCaches();
+  
+} else {
+  console.log(`😢 ERRO: Workbox não foi carregado. A funcionalidade offline estará desabilitada.`);
+}
+
+    </script>
+</body>
+</html>
